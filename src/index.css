@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-thp-red: #ED1C24;
+  --color-thp-blue: #1F2060;
+  --color-thp-gray: #F5F5F5;
+}
+
+body {
+  background-color: var(--color-thp-gray);
+  color: #0f172a;
+  /* slate-900 */
+  font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
