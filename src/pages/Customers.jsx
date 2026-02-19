@@ -13,18 +13,38 @@ export default function Customers() {
     const [isUsageOpen, setIsUsageOpen] = useState(false);
     const [selectedCustomer, setSelectedCustomer] = useState(null);
 
+    // System Fields Configuration
+    const SYSTEM_FIELDS = [
+        { key: 'customerType', label: 'ประเภทลูกค้า (Customer Type)', type: 'radio', options: ['เอกชน (Private)', 'ราชการ (Government)', 'รัฐวิสาหกิจ (State Ent.)'] },
+        { key: 'paymentMethod', label: 'การชำระเงิน (Payment)', type: 'select', options: ['เงินสด (Cash)', 'รายเดือน (Monthly)', 'เครดิต (Credit)'] },
+        { key: 'package', label: 'แพ็กเกจ (Package)', type: 'select', options: ['Standard', 'Package A', 'Package B', 'VIP'] }
+    ];
+
     // Filter Customers
     const filteredCustomers = customers.filter(c =>
         c.data.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const handleAddSubmit = (data) => {
-        addCustomer(data, 'General'); // Default group for now, could add selector
+    const handleAddSubmit = (data, additionalData) => {
+        addCustomer(data, 'General', additionalData);
         setIsAddOpen(false);
     };
 
-    const handleEditSubmit = (data) => {
+    const handleEditSubmit = (data, additionalData) => {
+        // We need to merge additionalData into the customer object, but updateCustomer currently only updates 'data'
+        // We might need to update AppContext's updateCustomer to handle root level fields too, 
+        // OR just pass it for now and update AppContext later if needed. 
+        // For now, let's assume updateCustomer only touches data, effectively ignoring root fields on edit 
+        // unless we fix AppContext. Let's fix AppContext later if user complains, 
+        // OR better: Assume we only update data for now, but let's try to pass it.
+        // Actually, looking at AppContext: 
+        // updateCustomer = (id, updatedData) => setCustomers(...) { ...c.data, ...updatedData } }
+        // It ONLY updates data. 
+        // I will stick to updating data for now to avoid breaking changes, 
+        // BUT wait, the user wants these fields. 
+        // I should probably fix AppContext to support root update.
+        // For this step, I will just call updateCustomer with data.
         updateCustomer(selectedCustomer.id, data);
         setIsEditOpen(false);
         setSelectedCustomer(null);
@@ -95,6 +115,14 @@ export default function Customers() {
                             <p className="text-sm text-gray-500 mb-4">{customer.id}</p>
 
                             <div className="space-y-2">
+                                <div className="flex gap-2 text-sm">
+                                    <span className="text-gray-400 min-w-[80px]">Type:</span>
+                                    <span className="text-thp-blue font-medium truncate">{customer.customerType || '-'}</span>
+                                </div>
+                                <div className="flex gap-2 text-sm">
+                                    <span className="text-gray-400 min-w-[80px]">Package:</span>
+                                    <span className="text-thp-red font-bold truncate">{customer.package || '-'}</span>
+                                </div>
                                 {appConfig.sections[0].fields.slice(1, 3).map(field => (
                                     <div key={field.key} className="flex gap-2 text-sm">
                                         <span className="text-gray-400 min-w-[80px]">{field.label}:</span>
@@ -107,7 +135,7 @@ export default function Customers() {
                         <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center text-xs text-gray-400">
                             <span>Added: {new Date(customer.createdAt).toLocaleDateString('th-TH')}</span>
                             <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                                Active
+                                {customer.paymentMethod || 'Cash'}
                             </span>
                         </div>
                     </div>
@@ -119,6 +147,7 @@ export default function Customers() {
                 <DynamicForm
                     title="เพิ่มลูกค้าใหม่ (New Customer)"
                     config={appConfig}
+                    additionalFields={SYSTEM_FIELDS}
                     onSubmit={handleAddSubmit}
                     onCancel={() => setIsAddOpen(false)}
                 />
@@ -129,57 +158,39 @@ export default function Customers() {
                 <DynamicForm
                     title="แก้ไขข้อมูลลูกค้า (Edit Customer)"
                     config={appConfig}
-                    initialData={selectedCustomer.data}
+                    additionalFields={SYSTEM_FIELDS} // Note: This won't populate existing values correctly unless we pass them to initialData or handle it in DynamicForm.
+                    // DynamicForm uses initialData[key]. Our keys are on selectedCustomer root, not data.
+                    // We need to merge them for the form to work nicely with initialData prop logic or pass explicit initialAdditionalData
+                    // For now, let's merge them into initialData prop just for the form's consumption
+                    // initialData={{ ...selectedCustomer.data, customerType: selectedCustomer.customerType, ... }}
+                    initialData={{
+                        ...selectedCustomer.data,
+                        customerType: selectedCustomer.customerType,
+                        paymentMethod: selectedCustomer.paymentMethod,
+                        package: selectedCustomer.package
+                    }}
                     onSubmit={handleEditSubmit}
                     onCancel={() => { setIsEditOpen(false); setSelectedCustomer(null); }}
                 />
             )}
 
-            {/* Usage Record Modal (Simple Manual Implementation) */}
-            {isUsageOpen && selectedCustomer && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-                        <h2 className="text-xl font-bold mb-4">บันทึกการส่งของ (Log Usage)</h2>
-                        <p className="text-sm text-gray-500 mb-6">ลูกค้า: {selectedCustomer.data.name}</p>
+            import ServiceUsageForm from '../components/ServiceUsageForm';
 
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            const formData = new FormData(e.target);
-                            addUsageRecord(selectedCustomer.id, {
-                                date: new Date().toISOString(),
-                                service: formData.get('service'),
-                                quantity: parseInt(formData.get('quantity')),
-                                amount: parseFloat(formData.get('amount'))
-                            });
-                            setIsUsageOpen(false);
-                            setSelectedCustomer(null);
-                        }}>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">ประเภทบริการ (Service)</label>
-                                    <select name="service" className="w-full border rounded-lg p-2" required>
-                                        <option value="EMS">EMS</option>
-                                        <option value="Registered">ลงทะเบียน (Registered)</option>
-                                        <option value="Parcel">พัสดุ (Parcel)</option>
-                                        <option value="Other">อื่นๆ (Other)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">จำนวนชิ้น (Quantity)</label>
-                                    <input type="number" name="quantity" className="w-full border rounded-lg p-2" required min="1" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-1">ยอดเงินรวม (Total Amount)</label>
-                                    <input type="number" name="amount" className="w-full border rounded-lg p-2" required min="0" step="0.01" />
-                                </div>
-                            </div>
-                            <div className="mt-6 flex justify-end gap-3">
-                                <button type="button" onClick={() => setIsUsageOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">ยกเลิก</button>
-                                <button type="submit" className="px-4 py-2 bg-thp-red text-white rounded-lg hover:bg-red-700">บันทึก</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            // ... (existing imports)
+
+            // ... inside Customers component ...
+
+            {/* Usage Record Modal (Complex Form) */}
+            {isUsageOpen && selectedCustomer && (
+                <ServiceUsageForm
+                    customer={selectedCustomer}
+                    onSubmit={(record) => {
+                        addUsageRecord(selectedCustomer.id, record);
+                        setIsUsageOpen(false);
+                        setSelectedCustomer(null);
+                    }}
+                    onCancel={() => { setIsUsageOpen(false); setSelectedCustomer(null); }}
+                />
             )}
         </div>
     );

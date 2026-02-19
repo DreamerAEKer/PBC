@@ -12,8 +12,8 @@ const SidebarItem = ({ to, icon: Icon, label, onClick }) => {
             to={to}
             onClick={onClick}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${isActive
-                    ? 'bg-thp-red text-white shadow-md'
-                    : 'text-gray-600 hover:bg-red-50 hover:text-thp-red'
+                ? 'bg-thp-red text-white shadow-md'
+                : 'text-gray-600 hover:bg-red-50 hover:text-thp-red'
                 }`}
         >
             <Icon size={20} />
@@ -49,7 +49,7 @@ export default function AppLayout() {
                             </div>
                             <div>
                                 <h1 className="text-thp-blue font-bold text-lg leading-tight">Thailand Post</h1>
-                                <p className="text-xs text-gray-500">Business CRM</p>
+                                <p className="text-xs text-gray-500">Business CRM <span className="text-thp-red font-bold ml-1">v0.01</span></p>
                             </div>
                         </div>
                         <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-gray-600">

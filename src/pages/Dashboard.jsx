@@ -20,8 +20,23 @@ export default function Dashboard() {
 
     // Calculate Stats
     const totalCustomers = customers.length;
-    const totalUsageCount = customers.reduce((sum, c) => sum + (c.usageHistory?.reduce((s, r) => s + Number(r.quantity), 0) || 0), 0);
-    const totalRevenue = customers.reduce((sum, c) => sum + (c.usageHistory?.reduce((s, r) => s + Number(r.amount), 0) || 0), 0);
+    const totalUsageCount = customers.reduce((sum, c) => sum + (c.usageHistory?.reduce((s, r) => {
+        // New structure: sum of items' qty
+        if (r.items && Array.isArray(r.items)) {
+            return s + r.items.reduce((is, i) => is + (Number(i.qty) || 0), 0);
+        }
+        // Old structure fallback
+        return s + (Number(r.quantity) || 0);
+    }, 0) || 0), 0);
+
+    const totalRevenue = customers.reduce((sum, c) => sum + (c.usageHistory?.reduce((s, r) => {
+        // New structure: grandTotal
+        if (r.grandTotal !== undefined) {
+            return s + (Number(r.grandTotal) || 0);
+        }
+        // Old structure fallback
+        return s + (Number(r.amount) || 0);
+    }, 0) || 0), 0);
 
     // Group Stats by Group
     const groupStats = customers.reduce((acc, curr) => {

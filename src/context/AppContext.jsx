@@ -43,6 +43,9 @@ const INITIAL_CUSTOMERS = [
     {
         id: "CUST-001",
         group: "E-Commerce",
+        customerType: "เอกชน (Private)",
+        paymentMethod: "เงินสด (Cash)",
+        package: "Package A",
         data: {
             name: "บริษัท แฟชั่นออนไลน์ จำกัด",
             contact_person: "คุณสุดสวย",
@@ -56,8 +59,14 @@ const INITIAL_CUSTOMERS = [
             sales_rep: "สมชาย"
         },
         usageHistory: [
-            { id: 101, date: "2024-02-15", service: "EMS", quantity: 200, amount: 8000 },
-            { id: 102, date: "2024-02-18", service: "EMS", quantity: 150, amount: 6000 }
+            {
+                id: 101,
+                date: "2024-02-15",
+                grandTotal: 12000,
+                items: [
+                    { code: "12.1", name: "EMS ในประเทศ", qty: 200, revenue: 12000, discount: 0, total: 12000 }
+                ]
+            }
         ],
         createdAt: new Date().toISOString()
     }
@@ -82,10 +91,13 @@ export const AppProvider = ({ children }) => {
         localStorage.setItem('thp_crm_customers', JSON.stringify(customers));
     }, [customers]);
 
-    const addCustomer = (customerData, group) => {
+    const addCustomer = (customerData, group, additionalInfo = {}) => {
         const newCustomer = {
             id: `CUST-${Date.now().toString().slice(-4)}`,
             group,
+            customerType: additionalInfo.customerType || 'เอกชน (Private)',
+            paymentMethod: additionalInfo.paymentMethod || 'เงินสด (Cash)',
+            package: additionalInfo.package || '-',
             data: customerData,
             usageHistory: [],
             createdAt: new Date().toISOString()
